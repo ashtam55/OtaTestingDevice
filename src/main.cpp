@@ -10,13 +10,12 @@
 #include "kaaro_utils.cpp"
 // #include "neopixel_utils.cpp"
 #include <Adafruit_NeoPixel.h>
-
-
+#include<Preferences.h>
 /* 
     STATICS
 */
 #define LED_PIN    15
-#define LED_COUNT  25
+#define LED_COUNT  380
 const char *mqtt_server = "api.akriya.co.in";
 
 /* 
@@ -35,6 +34,7 @@ String host = "ytkarta.s3.ap-south-1.amazonaws.com"; // Host => bucket-name.s3.r
 int port = 80;                                       // Non https. For HTTPS 443. As of today, HTTPS doesn't work.
 String bin = "/kaaroMerch/SubsCount/firmware.bin";   // bin file name with a slash in front.
 
+bool isWificonnected;
 char mo[75];
 String msg = "";
 String DEVICE_MAC_ADDRESS;
@@ -42,16 +42,17 @@ String ssid = "";
 String pass = "";
 byte mac[6];
 
+String wifiStatus;
 unsigned long delayStart = 0; // the time the delay started
 bool delayRunning = false;
-unsigned int interval = 5000;
+unsigned int interval = 2500;
 
 
 
 /*
   HY Variable/Instance creation
 */
-
+Preferences preferences;
 WiFiClient wifiClient;
 PubSubClient mqttClient(mqtt_server, 1883, mqttCallback, wifiClient);
 WiFiManager wifiManager;
@@ -78,24 +79,88 @@ void mqttCallback(char *topic, uint8_t *payload, unsigned int length)
 
     OTA_ESP32::execOTA(host, port, msg, &wifiClient);
     }
-    else {
+    else if(msg.equals("default")){
     Serial.printf("Ota Initiating from Default link : %s", bin);
 
     OTA_ESP32::execOTA(host, port, bin, &wifiClient);
     }
 
+    if(msg.equals("G")||msg.equals("g")){
+  for(int j = 0; j < 3; j++) {
+
+ for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 255, 0,0));
+    delay(1); // Pause before next pass through loop
   }
+      strip.show();   // Send the updated pixel colors to the hardware.
+    delay(100);
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 0, 0,0));
+    delay(1); // Pause before next pass through loop
+  }   
+    strip.show();   // Send the updated pixel colors to the hardware.
+  }
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 0,0,255));
+    delay(1); // Pause before next pass through loop
+       // Send the updated pixel colors to the hardware.
 
+  } 
+  strip.show();
+  }
+      if(msg.equals("R")|| msg.equals("r")){
+  for(int j = 0; j < 3; j++) {
 
+    // strip.setPixelColor(0,255,0,0);
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(255, 0, 0,0));
+       // Send the updated pixel colors to the hardware.
+    delay(1); // Pause before next pass through loop
+  }
+  strip.show();
+    delay(100);
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 0, 0,0));
+    delay(1); // Pause before next pass through loop
+  }
+  strip.show();   
+  }
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 0,0,255));
+    delay(1); // Pause before next pass through loop
+  }
+      strip.show();   // Send the updated pixel colors to the hardware.
+      
+}
+    if(msg.equals("Y")||msg.equals("y")){
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(255, 255, 0,0));
+    delay(1); // Pause before next pass through loop
+  }
+      strip.show();   // Send the updated pixel colors to the hardware.
+    }
+    if(msg.equals("W")||msg.equals("w")){
+    for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 0, 0,255));
+    delay(1); // Pause before next pass through loop
+  }
+      strip.show();   // Send the updated pixel colors to the hardware.
+    }
 
+  }
+  // else if (topics == "elle/leds"){
+    
+  
+  // else if(topics = "elle/rgb")
 
 }
-
+  
 
 void reconnect()
 {
-
-  while (!mqttClient.connected())
+int i=0;
+if(WiFi.status() == WL_CONNECTED){
+  if (!mqttClient.connected())
   {
     Serial.print("Attempting MQTT connection...");
 
@@ -114,15 +179,27 @@ void reconnect()
       mqttClient.subscribe(otaTopic.c_str());
     }
 
-    else
+    else if (WiFi.status() != WL_CONNECTED)
     {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
-
-      delay(5000);
+      Serial.print("from here");
+      while (WiFi.status() != WL_CONNECTED)
+    {
+        WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+ 
+    delay(100);
+       WiFi.begin("wendor");
+       Serial.print("Attempting to connect to  network, SSID: ");
+        delay(5000);
+ 
+       Serial.println("IP address: ");
+       Serial.println(WiFi.localIP());
+ 
+        wifiStatus = WiFi.status() == WL_CONNECTED;
+    }
     }
   }
+}
 }
 void theaterChase(uint32_t color, int wait) {
   for(int a=0; a<10; a++) {  // Repeat 10 times...
@@ -185,10 +262,21 @@ void setup()
 {
 
   Serial.begin(115200);
+  // preferences.begin("wifiKeys", false);
+
     strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
     strip.show();            // Turn OFF all pixels ASAP
-    strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
-    strip.Color(255,0,0,0);
+    strip.setBrightness(90); // Set BRIGHTNESS to about 1/5 (max = 255)
+    // strip.Color(0,0,0,255);
+    // strip.show();
+      for(int i=0; i<LED_COUNT; i++) { // For each pixel...
+    strip.setPixelColor(i, strip.Color(0, 0, 0,255));
+    delay(1); // Pause before next pass through loop
+  }
+      strip.show();
+
+
+
   // neopixel_utils::initNeopixel();
   DEVICE_MAC_ADDRESS = KaaroUtils::getMacAddress();
   Serial.println(DEVICE_MAC_ADDRESS);
@@ -208,11 +296,40 @@ void setup()
 
 
   Serial.print("Connecting Wifi: ");
-  wifiManager.setConnectTimeout(5);
+     WiFi.begin("wendor");
+int i = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        if(i>10){
+          break;
+        }
+        i++;
+        Serial.print(".");
 
-  wifiManager.setConfigPortalBlocking(false);
-  wifiManager.setWiFiAutoReconnect(true);
-  wifiManager.autoConnect("Taj-OTA");
+    }
+
+  // String PD, SD;
+  // if (preferences.getString("ssid","noKey")=="noKey"){
+  // Serial.println("Not Having Wifi Keys");
+  // wifiManager.setConnectTimeout(5);
+  // wifiManager.setConfigPortalBlocking(false);
+  // wifiManager.setWiFiAutoReconnect(true);
+  // wifiManager.autoConnect("Taj-OTA");
+  // if(wifiManager.autoConnect("Taj-OTA")){
+  //   Serial.println("Autoconnect Successfull");
+  //   // SD = preferences.getString("ssid");
+  //   //  PD = preferences.getString("pass");
+  // }
+  // // }
+  // else
+  // {
+  // //   SD = preferences.getString("ssid");
+  // //   PD = preferences.getString("pass");
+  //   Serial.printf("SSID is = wendor");
+  //   WiFi.begin("wendor");
+  // }
+  
+
 
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -221,10 +338,14 @@ void setup()
     Serial.println("IP address: ");
     IPAddress ip = WiFi.localIP();
     Serial.println(ip);
+  isWificonnected = true;
 
     ssid = WiFi.SSID();
     pass = WiFi.psk();
+    // preferences.putString("ssid", ssid);
+    // preferences.putString("pwd",pass);  
   }
+
 
   mqttClient.setServer(mqtt_server, 1883);
   mqttClient.setCallback(mqttCallback);
@@ -235,26 +356,40 @@ void loop()
 
   wifiManager.process();
 
-     if (timeElapsed > interval) 
-  {				
-      Serial.print("From here");
-    // display.showCustomMessage(" Total ");
-      // neopixel_utils::colorWipe(strip.Color(255,   0,   0), 50);
-      theaterChaseRainbow(50);
-      // rainbow(10);             // Flowing rainbow cycle along the whole strip
+  //    if (timeElapsed > interval) 
+  // {				
+  //     Serial.print("From here");
+  //   // display.showCustomMessage(" Total ");
+  //     // neopixel_utils::colorWipe(strip.Color(255,   0,   0), 50);
+  //     theaterChaseRainbow(50);
+  //     // rainbow(10);             // Flowing rainbow cycle along the whole strip
 
-    timeElapsed = 0;
-  }
+  //   timeElapsed = 0;
+  // }
+  while (WiFi.status() != WL_CONNECTED)
+    {
+        WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+ 
+    delay(100);
+       WiFi.begin("wendor");
+       Serial.print("Attempting to connect to  network, SSID: ");
+        delay(5000);
+                // Serial.println(ssid);
+ 
+       Serial.println("IP address: ");
+       Serial.println(WiFi.localIP());
+ 
+        wifiStatus = WiFi.status() == WL_CONNECTED;
+ 
+    }
 
   if (WiFi.status() == WL_CONNECTED)
   {
-
-    if (!mqttClient.connected())
-    {
-      reconnect();
-    }
+      if (!mqttClient.connected()) {
+    reconnect();
   }
-  mqttClient.loop(); 
 
-
+  }
+    mqttClient.loop();
 }
